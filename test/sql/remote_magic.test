@@ -1,0 +1,18 @@
+# name: test/sql/basic_magic.test
+# description: test magic extension - remote
+# group: [magic]
+
+require magic
+
+statement ok
+LOAD httpfs
+
+query I
+SELECT magic_type('https://duckdb.org/');
+----
+HTML document, Unicode text, UTF-8 text
+
+query I
+SELECT magic_mime('https://duckdb.org/');
+----
+text/html
