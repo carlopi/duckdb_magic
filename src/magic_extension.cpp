@@ -1,6 +1,5 @@
 #define DUCKDB_EXTENSION_MAIN
 
-#include <stdio.h>
 #include <magic.h>
 
 #define STATIC_MAGIC_FILE
@@ -18,38 +17,39 @@
 
 namespace duckdb {
 
+template <bool MIME_TYPE>
 struct MagicFunctionLocalState : public FunctionLocalState {
   explicit MagicFunctionLocalState() : FunctionLocalState() {
 
     /* MAGIC_MIME tells magic to return a mime of the file,
        but you can specify different things	*/
-    magic_cookie = magic_open(MAGIC_NONE | MAGIC_ERROR);
+
+    if (MIME_TYPE) {
+      magic_cookie = magic_open(MAGIC_MIME_TYPE | MAGIC_ERROR);
+    } else {
+      magic_cookie = magic_open(MAGIC_NONE | MAGIC_ERROR);
+    }
 
     if (magic_cookie == NULL) {
-      printf("unable to initialize magic library\n");
+      throw std::runtime_error("Unable to initialize magic library");
       return;
     }
 
-    printf("Loading default magic database\n");
 
 #ifndef STATIC_MAGIC_FILE
     if (magic_load(magic_cookie,
                    "/Users/carlo/duckdblabs/extension-template/build/release/"
                    "vcpkg_installed/arm64-osx/share/libmagic/misc/magic.mgc") !=
         0) {
-      printf("cannot load magic database - %s\n", magic_error(magic_cookie));
-      magic_close(magic_cookie);
-      magic_cookie = NULL;
-      return;
+      string message(magic_error(magic_cookie));
+      throw std::runtime_error("Cannot load magic database " + message);
     }
 #else
     void *buff[1] = {const_cast<unsigned char *>(&magic_mgc[0])};
     size_t z[1] = {size_t(magic_mgc_size)};
     if (magic_load_buffers(magic_cookie, buff, z, 1) != 0) {
-      printf("cannot load magic database - %s\n", magic_error(magic_cookie));
-      magic_close(magic_cookie);
-      magic_cookie = NULL;
-      return;
+      string message(magic_error(magic_cookie));
+      throw std::runtime_error("Cannot load magic database " + message);
     }
 #endif
   }
@@ -61,14 +61,16 @@ struct MagicFunctionLocalState : public FunctionLocalState {
   magic_t magic_cookie;
 };
 
+template <bool MIME>
 inline unique_ptr<FunctionLocalState>
 MagicFunctionLocalStateFun(ExpressionState &state,
                            const BoundFunctionExpression &expr,
                            FunctionData *bind_data) {
-  auto res = make_uniq<MagicFunctionLocalState>();
+  auto res = make_uniq<MagicFunctionLocalState<MIME>>();
   return std::move(res);
 }
 
+template <bool MIME>
 inline void MagicScalarFun(DataChunk &args, ExpressionState &state,
                            Vector &result) {
   auto &name_vector = args.data[0];
@@ -76,14 +78,14 @@ inline void MagicScalarFun(DataChunk &args, ExpressionState &state,
       name_vector, result, args.size(),
       [&](string_t name, ValidityMask &mask, idx_t idx) {
         auto &localState = ExecuteFunctionState::GetFunctionState(state)
-                               ->Cast<MagicFunctionLocalState>();
+                               ->Cast<MagicFunctionLocalState<MIME>>();
 
         string terminated = name.GetString();
         const char *actual_file = terminated.c_str();
 
         const char *magic_full;
 
-#ifdef MAGIC_ON_BUFFER
+#ifndef MAGIC_ON_BUFFER
         const bool onBuffer = true;
 #else
         const bool onBuffer = false;
@@ -111,11 +113,15 @@ inline void MagicScalarFun(DataChunk &args, ExpressionState &state,
 }
 
 static void LoadInternal(DatabaseInstance &instance) {
-  // Register another scalar function
-  auto magic_scalar_function = ScalarFunction(
-      "magic", {LogicalType::VARCHAR}, LogicalType::VARCHAR, MagicScalarFun,
-      nullptr, nullptr, nullptr, MagicFunctionLocalStateFun);
-  ExtensionUtil::RegisterFunction(instance, magic_scalar_function);
+  auto magic_type_scalar_function = ScalarFunction(
+      "magic_type", {LogicalType::VARCHAR}, LogicalType::VARCHAR, MagicScalarFun<false>,
+      nullptr, nullptr, nullptr, MagicFunctionLocalStateFun<false>);
+  ExtensionUtil::RegisterFunction(instance, magic_type_scalar_function);
+
+  auto magic_mime_scalar_function = ScalarFunction(
+      "magic_mime", {LogicalType::VARCHAR}, LogicalType::VARCHAR, MagicScalarFun<true>,
+      nullptr, nullptr, nullptr, MagicFunctionLocalStateFun<true>);
+  ExtensionUtil::RegisterFunction(instance, magic_mime_scalar_function);
 }
 
 void MagicExtension::Load(DuckDB &db) { LoadInternal(*db.instance); }
