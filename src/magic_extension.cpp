@@ -138,9 +138,6 @@ DUCKDB_EXTENSION_API void magic_init(duckdb::DatabaseInstance &db) {
   db_wrapper.LoadExtension<duckdb::MagicExtension>();
 }
 
-DUCKDB_EXTENSION_API const char *magic_version() {
-  return duckdb::DuckDB::LibraryVersion();
-}
 }
 
 #ifndef DUCKDB_EXTENSION_MAIN
