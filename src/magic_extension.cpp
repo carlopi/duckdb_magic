@@ -113,6 +113,8 @@ inline void MagicScalarFun(DataChunk &args, ExpressionState &state,
 }
 
 static void LoadInternal(DatabaseInstance &instance) {
+  ExtensionUtil::RegisterExtension(instance, "magic", {"Detect file types via magic library"});
+
   auto magic_type_scalar_function = ScalarFunction(
       "magic_type", {LogicalType::VARCHAR}, LogicalType::VARCHAR, MagicScalarFun<false>,
       nullptr, nullptr, nullptr, MagicFunctionLocalStateFun<false>);
