@@ -13,9 +13,36 @@
 #include "duckdb/common/string_util.hpp"
 #include "duckdb/function/scalar_function.hpp"
 #include "duckdb/main/extension_util.hpp"
-#include <duckdb/parser/parsed_data/create_scalar_function_info.hpp>
+#include "duckdb/parser/parsed_data/create_scalar_function_info.hpp"
+#include "duckdb/catalog/default/default_table_functions.hpp"
 
 namespace duckdb {
+
+// clang-format off
+static const DefaultTableMacro dynamic_sql_examples_table_macros[] = {
+    {DEFAULT_SCHEMA, "read_any", {"file_name", nullptr}, {{"format", "'auto'"}, {nullptr, nullptr}}, R"(
+----CREATE OR REPLACE MACRO read_any(file_name, format:='auto') AS TABLE (
+       WITH "json_case" as (FROM read_json_auto(file_name))
+           , "csv_case" as (FROM read_csv(file_name))
+           , "parquet_case" as (FROM read_parquet(file_name))
+           , "blob_case" as (FROM read_blob(file_name))
+           , "spatial_case" as (FROM st_read(file_name))
+       FROM query_table(
+             CASE
+               WHEN format=='blob' THEN 'blob_case'
+               WHEN format == 'spatial' OR format LIKE 'geo%' OR (format=='auto' AND (file_name ILIKE '%.geojson' OR file_name ILIKE '%.fgb' OR file_name ILIKE '%.prj' OR file_name ILIKE '%.shp')) THEN 'spatial_case'
+               WHEN format=='json' OR (format=='auto' AND magic_mime(file_name) ILIKE '%json') THEN 'json_case'
+               WHEN format=='csv' OR (format=='auto' AND magic_mime(file_name) ILIKE 'text/plain') THEN 'csv_case'
+               WHEN format=='parquet' OR (format=='auto' AND magic_type(file_name) ILIKE 'Apache Parquet%') THEN 'parquet_case'
+               WHEN format=='auto' THEN error('read_any can not auto recognize a valid format, try explicitly: FROM read_any("' || file_name ||'", format:="csv"), explcitly supported formats are csv, json, parquet, spatial and blob')
+             ELSE error('read_any explicitly provided format is not one of: csv | json | parquet | blob | spatial (or geo alias) | auto"')
+             END
+       )
+----   );
+    )"},
+	{nullptr, nullptr, {nullptr}, {{nullptr, nullptr}}, nullptr}
+	};
+// clang-format on
 
 template <bool MIME_TYPE>
 struct MagicFunctionLocalState : public FunctionLocalState {
@@ -124,6 +151,12 @@ static void LoadInternal(DatabaseInstance &instance) {
       "magic_mime", {LogicalType::VARCHAR}, LogicalType::VARCHAR, MagicScalarFun<true>,
       nullptr, nullptr, nullptr, MagicFunctionLocalStateFun<true>);
   ExtensionUtil::RegisterFunction(instance, magic_mime_scalar_function);
+
+    // Table Macros
+    for (idx_t index = 0; dynamic_sql_examples_table_macros[index].name != nullptr; index++) {
+		auto table_info = DefaultTableFunctionGenerator::CreateTableMacroInfo(dynamic_sql_examples_table_macros[index]);
+        ExtensionUtil::RegisterFunction(instance, *table_info);
+	}
 }
 
 void MagicExtension::Load(DuckDB &db) { LoadInternal(*db.instance); }
