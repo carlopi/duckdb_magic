@@ -16,12 +16,23 @@ LOAD magic;
 
 Example, discover which mime_types is a given [remote] file[s]:
 ```sql
+--- Discover autodetected types for files in your current folder
+SELECT magic_mime(file), magic_type(file), file
+    FROM glob('*');
+
+--- Needs to be performed once per session to query remote files
+LOAD httpfs;
+
+--- Discover autodetected types for a remote file
 SELECT magic_mime(file), magic_type(file), file
     FROM glob('https://raw.githubusercontent.com/duckdb/duckdb/main/data/parquet-testing/adam_genotypes.parquet');
 ```
 
 Example, read any file with autodetection (on the content or the name):
 ```sql
+--- Needs to be performed once per session to query remote files
+LOAD httpfs;
+
 FROM read_any('https://raw.githubusercontent.com/duckdb/duckdb/main/data/parquet-testing/adam_genotypes.parquet');
 ```
 
