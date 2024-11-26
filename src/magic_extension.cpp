@@ -62,7 +62,6 @@ struct MagicFunctionLocalState : public FunctionLocalState {
       return;
     }
 
-
 #ifndef STATIC_MAGIC_FILE
     if (magic_load(magic_cookie,
                    "/Users/carlo/duckdblabs/extension-template/build/release/"
@@ -140,23 +139,28 @@ inline void MagicScalarFun(DataChunk &args, ExpressionState &state,
 }
 
 static void LoadInternal(DatabaseInstance &instance) {
-  ExtensionUtil::RegisterExtension(instance, "magic", {"Detect file types via magic library"});
+  ExtensionUtil::RegisterExtension(instance, "magic",
+                                   {"Detect file types via magic library"});
 
-  auto magic_type_scalar_function = ScalarFunction(
-      "magic_type", {LogicalType::VARCHAR}, LogicalType::VARCHAR, MagicScalarFun<false>,
-      nullptr, nullptr, nullptr, MagicFunctionLocalStateFun<false>);
+  auto magic_type_scalar_function =
+      ScalarFunction("magic_type", {LogicalType::VARCHAR}, LogicalType::VARCHAR,
+                     MagicScalarFun<false>, nullptr, nullptr, nullptr,
+                     MagicFunctionLocalStateFun<false>);
   ExtensionUtil::RegisterFunction(instance, magic_type_scalar_function);
 
-  auto magic_mime_scalar_function = ScalarFunction(
-      "magic_mime", {LogicalType::VARCHAR}, LogicalType::VARCHAR, MagicScalarFun<true>,
-      nullptr, nullptr, nullptr, MagicFunctionLocalStateFun<true>);
+  auto magic_mime_scalar_function =
+      ScalarFunction("magic_mime", {LogicalType::VARCHAR}, LogicalType::VARCHAR,
+                     MagicScalarFun<true>, nullptr, nullptr, nullptr,
+                     MagicFunctionLocalStateFun<true>);
   ExtensionUtil::RegisterFunction(instance, magic_mime_scalar_function);
 
-    // Table Macros
-    for (idx_t index = 0; dynamic_sql_examples_table_macros[index].name != nullptr; index++) {
-		auto table_info = DefaultTableFunctionGenerator::CreateTableMacroInfo(dynamic_sql_examples_table_macros[index]);
-        ExtensionUtil::RegisterFunction(instance, *table_info);
-	}
+  // Table Macros
+  for (idx_t index = 0;
+       dynamic_sql_examples_table_macros[index].name != nullptr; index++) {
+    auto table_info = DefaultTableFunctionGenerator::CreateTableMacroInfo(
+        dynamic_sql_examples_table_macros[index]);
+    ExtensionUtil::RegisterFunction(instance, *table_info);
+  }
 }
 
 void MagicExtension::Load(DuckDB &db) { LoadInternal(*db.instance); }
@@ -178,7 +182,6 @@ DUCKDB_EXTENSION_API void magic_init(duckdb::DatabaseInstance &db) {
   duckdb::DuckDB db_wrapper(db);
   db_wrapper.LoadExtension<duckdb::MagicExtension>();
 }
-
 }
 
 #ifndef DUCKDB_EXTENSION_MAIN
