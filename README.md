@@ -7,7 +7,7 @@ This extension, Magic, allow you to examine files and determine their type, base
 --- Install (once)
 INSTALL magic FROM community;
 
---- Update (to check for updates
+--- Update (to check for updates)
 UPDATE EXTENSIONS (magic);
 
 --- Load
