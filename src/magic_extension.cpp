@@ -25,6 +25,7 @@ static const DefaultTableMacro dynamic_sql_examples_table_macros[] = {
        WITH "json_case" as (FROM read_json_auto(file_name))
            , "csv_case" as (FROM read_csv(file_name))
            , "parquet_case" as (FROM read_parquet(file_name))
+           , "avro_case" as (FROM read_avro(file_name))
            , "blob_case" as (FROM read_blob(file_name))
            , "spatial_case" as (FROM st_read(file_name))
        FROM query_table(
@@ -34,6 +35,7 @@ static const DefaultTableMacro dynamic_sql_examples_table_macros[] = {
                WHEN format=='json' OR (format=='auto' AND magic_mime(file_name) ILIKE '%json') OR (file_name LIKE '%.json') THEN 'json_case'
                WHEN format=='csv' OR (format=='auto' AND magic_mime(file_name) ILIKE 'text/plain') THEN 'csv_case'
                WHEN format=='parquet' OR (format=='auto' AND magic_type(file_name) ILIKE 'Apache Parquet%') THEN 'parquet_case'
+               WHEN format=='avro' OR (format=='auto' AND magic_type(file_name) ILIKE 'Apache Avro%') THEN 'avro_case'
                WHEN format=='auto' THEN error('read_any can not auto recognize a valid format, try explicitly: FROM read_any("' || file_name ||'", format:="csv"), explcitly supported formats are csv, json, parquet, spatial and blob')
              ELSE error('read_any explicitly provided format is not one of: csv | json | parquet | blob | spatial (or geo alias) | auto"')
              END
