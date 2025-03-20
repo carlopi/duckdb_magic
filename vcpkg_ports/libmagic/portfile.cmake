@@ -18,9 +18,11 @@ if(VCPKG_TARGET_IS_WINDOWS)
     )
 endif()
 
+if(VCPKG_TARGET_IS_EMSCRIPTEN)
     set(PATCHES
         "00DUCK-native-file.patch"
     )
+endif()
 
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
@@ -58,7 +60,6 @@ set(IS_CROSS_COMPILE 1)
 set(cross_compiling 1)
 set(VCPKG_CROSSCOMPILING 1)
 
-message(STATUS "AAAAAAA")
 vcpkg_configure_make(
     AUTOCONFIG
     SOURCE_PATH "${SOURCE_PATH}"
@@ -69,7 +70,6 @@ vcpkg_configure_make(
         "--host=wasm32"
 )
 
-message(STATUS "AAAAAAA")
 vcpkg_add_to_path(PREPEND "${CURRENT_HOST_INSTALLED_DIR}/tools/libmagic/bin")
 
 vcpkg_install_make(${EXTRA_ARGS})
