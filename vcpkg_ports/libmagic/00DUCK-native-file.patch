@@ -1,0 +1,11 @@
+diff --git a/magic/Makefile.am b/magic/Makefile.am
+index 8c1c61c3..8e0a5571 100644
+--- a/magic/Makefile.am
++++ b/magic/Makefile.am
+@@ -387,5 +387,5 @@ ${MAGIC}: $(MAGIC_FRAGMENTS) $(FILE_COMPILE_DEP)
+ 		exit 1; \
+ 	    fi; \
+ 	  fi)
+-	$(FILE_COMPILE) -C -m magic
++	file -C -m magic
+ 	@rm -fr magic

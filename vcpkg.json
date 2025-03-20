@@ -3,5 +3,10 @@
     "libmagic",
     "bzip2",
     "zlib"
-  ]
+  ],
+  "vcpkg-configuration": {
+    "overlay-ports": [
+      "./vcpkg_ports"
+    ]
+  }
 }
